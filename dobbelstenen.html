@@ -6,20 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Dobbelstenen">
+<link rel="apple-touch-icon" href="icon.png">
+  
 <title>Dobbelstenen</title>
-<link class="apple-touch-icon" href="icon.png">
-<link rel="manifest" href="manifest.json">
-
-<link class="apple-touch-icon" href="icon.png">
-
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(function() { console.log('Service Worker Geregistreerd!'); })
-      .catch(function(err) { console.log('Service Worker Fout:', err); });
-  }
-</script>
-
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -87,7 +76,7 @@ body {
 }
 .die.wc-num { border: 2.5px solid var(--wildcard); background: var(--wildcard-bg); }
 .die.wc-col { border: 2.5px solid var(--wildcard); }
-.die.color-die { border: 4px solid rgba(0,0,0,0.25); }
+.die.color-die { border: none; box-shadow: var(--shadow); }
 
 /* Qwixx gekleurde dobbelstenen */
 .die.blue  { background: #2a6bb0; border-color: #2a6bb0; }
@@ -96,7 +85,6 @@ body {
 .die.green { background: #2d8a4e; border-color: #2d8a4e; }
 .die.white { background: #fff; border-color: #ccc; }
 .die.blue span, .die.yellow span, .die.red span, .die.green span { color: #fff; }
-.die.yellow span { color: #5a4800; }
 .die.white span { color: #1A1714; }
 
 @-webkit-keyframes shake {
@@ -115,6 +103,49 @@ body {
 }
 .die.rolling { -webkit-animation: shake 0.4s ease; animation: shake 0.4s ease; }
 
+.accordion-btn {
+  width: 100%; background: none; border: none; cursor: pointer; -webkit-appearance: none;
+  display: -webkit-flex; display: flex;
+  -webkit-justify-content: space-between; justify-content: space-between;
+  -webkit-align-items: center; align-items: center;
+  padding: 0;
+}
+/* Qwixx accordion */
+.qwixx-accordion { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 16px; background: var(--surface); }
+.qwixx-accordion > .accordion-btn { padding: 14px 16px; }
+.qwixx-chevron { font-size: 20px; color: var(--text-muted); transition: transform 0.2s; }
+.qwixx-chevron.open { -webkit-transform: rotate(180deg); transform: rotate(180deg); }
+.qwixx-accordion-body { padding: 0 16px 14px; background: var(--surface); }
+.qwixx-top-sum {
+  display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center;
+  gap: 6px; padding: 10px 4px 12px;
+  border-bottom: 1px solid var(--border); margin-bottom: 12px;
+}
+.qwixx-white-badge {
+  background: #f0f0f0; border: 1.5px solid #ccc; border-radius: 8px;
+  padding: 4px 10px; font-size: 13px; font-weight: 600; color: var(--text);
+}
+.qwixx-plus, .qwixx-equals { font-size: 16px; font-weight: 600; color: var(--text-muted); }
+.qwixx-total { font-size: 22px; font-weight: 700; color: var(--accent); margin-left: 2px; }
+.qwixx-grid { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; gap: 8px; }
+.qwixx-row-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px; }
+.qwixx-cells { display: -webkit-flex; display: flex; gap: 6px; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+.qwixx-cell {
+  display: -webkit-flex; display: flex;
+  -webkit-flex-direction: column; flex-direction: column;
+  -webkit-align-items: center; align-items: center;
+  gap: 3px; min-width: 48px;
+}
+.qwixx-cell-color {
+  width: 44px; height: 36px; border-radius: 10px;
+  display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center;
+  -webkit-justify-content: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: #fff;
+}
+.qwixx-cell-label { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+
 .roll-btn {
   width: 100%; padding: 18px;
   background: var(--accent); color: #fff;
@@ -128,8 +159,8 @@ body {
 .roll-btn:active { opacity: 0.85; }
 .roll-btn.disabled { opacity: 0.35; box-shadow: none; }
 .hint { text-align: center; font-size: 13px; color: var(--wildcard); font-weight: 500; min-height: 20px; margin-bottom: 8px; }
-.results { background: var(--surface); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); display: none; }
-.results-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 10px; }
+.results { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--border); box-shadow: var(--shadow); display: none; }
+.results-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 0; }
 .results-row { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 8px; font-size: 15px; color: var(--text); padding: 6px 0; border-bottom: 1px solid var(--border); }
 .results-row:last-child { border-bottom: none; }
 .results-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,0.12); }
@@ -158,10 +189,13 @@ body {
   -webkit-appearance: none; appearance: none;
 }
 .color-btn:active { opacity: 0.8; }
+
+
 </style>
 </head>
 <body>
 
+<!-- KEER OP KEER 2 -->
 <div class="screen active" id="screen-kok">
   <div class="header">
     <h1>Keer op Keer 2</h1>
@@ -183,12 +217,16 @@ body {
     <p class="hint" id="kok-hint"></p>
     <button class="roll-btn" id="kok-rollBtn" type="button">&#127922; Gooi alle dobbelstenen</button>
     <div class="results" id="kok-results">
-      <div class="results-title">Uitkomst</div>
-      <div id="kok-resultsBody"></div>
+      <button class="accordion-btn" type="button" onclick="kokToggle()">
+        <span class="results-title" style="margin:0">Uitkomst</span>
+        <span class="qwixx-chevron" id="kok-chevron">&#8964;</span>
+      </button>
+      <div id="kok-resultsBody" style="padding-top:8px"></div>
     </div>
   </div>
 </div>
 
+<!-- QWIXX -->
 <div class="screen" id="screen-qwixx">
   <div class="header">
     <h1>Qwixx</h1>
@@ -204,9 +242,28 @@ body {
       <div class="dice-row" id="qwixx-colorRow"></div>
     </div>
     <button class="roll-btn" id="qwixx-rollBtn" type="button">&#127922; Gooi alle dobbelstenen</button>
+
+    <div class="qwixx-accordion" id="qwixx-accordion">
+      <button class="accordion-btn" id="qwixx-accordion-btn" type="button" onclick="qwixxToggle()">
+        <span class="results-title" style="margin:0">Uitkomst</span>
+        <span class="qwixx-chevron" id="qwixx-chevron">&#8964;</span>
+      </button>
+      <div class="qwixx-accordion-body" id="qwixx-accordion-body" style="display:none">
+        <div class="qwixx-top-sum" id="qwixx-top-sum">
+          <span class="qwixx-white-badge">Wit 1</span>
+          <span class="qwixx-plus">+</span>
+          <span class="qwixx-white-badge">Wit 2</span>
+          <span class="qwixx-equals">=</span>
+          <span class="qwixx-total" id="qwixx-ww-total">&#8212;</span>
+        </div>
+        <div class="qwixx-grid" id="qwixx-grid"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
+<!-- POPUP (gedeeld) -->
 <div class="popup-overlay" id="popupOverlay">
   <div class="popup-sheet">
     <div class="popup-handle"></div>
@@ -215,6 +272,7 @@ body {
   </div>
 </div>
 
+<!-- TAB BAR -->
 <div class="tab-bar">
   <button class="tab-btn active" id="tab-kok" type="button" onclick="switchTab('kok')">
     <span class="tab-icon">&#127922;</span>
@@ -257,7 +315,7 @@ function makeArrow3() {
   var r='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
   for(var i=0;i<3;i++)r+=makeBlock(i*(b+gap),0,b,s,sw);
   var ay=b+gap+aH/2,ax2=W-4;
-  r+='<line x1="4" y1="'+ay+'" x2="' + ax2 + '" y2="' + ay + '" stroke="'+s+'" stroke-width="'+sw+'" stroke-linecap="round"/>';
+  r+='<line x1="4" y1="'+ay+'" x2="'+ax2+'" y2="'+ay+'" stroke="'+s+'" stroke-width="'+sw+'" stroke-linecap="round"/>';
   r+='<polyline points="'+(ax2-8)+','+(ay-6)+' '+ax2+','+ay+' '+(ax2-8)+','+(ay+6)+'" fill="none" stroke="'+s+'" stroke-width="'+sw+'" stroke-linejoin="round" stroke-linecap="round"/>';
   return r+'</svg>';
 }
@@ -375,6 +433,13 @@ function kokChoose(i,val){
   kokShowResults();
 }
 
+function kokToggle(){
+  var body=document.getElementById('kok-resultsBody');
+  var chev=document.getElementById('kok-chevron');
+  if(body.style.display==='none'){body.style.display='block';chev.className='qwixx-chevron open';}
+  else{body.style.display='none';chev.className='qwixx-chevron';}
+}
+
 function kokSetBtn(on){var b=document.getElementById('kok-rollBtn');b.className=on?'roll-btn':'roll-btn disabled';b.disabled=!on;}
 
 function kokShowResults(){
@@ -389,8 +454,7 @@ function kokShowResults(){
     var blocks='';
     for(var k=0;k<colVals.length;k++){
       var c=colVals[k];
-      var textCol=(c.bg==='#e6c229')?'#5a4800':'#fff';
-      blocks+='<span style="display:inline-block;background:'+c.bg+';color:'+textCol+';border-radius:8px;padding:3px 10px;font-size:13px;font-weight:600;margin-right:6px">'+c.label+'</span>';
+      blocks+='<span style="display:inline-block;background:'+c.bg+';color:#fff;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:600;margin-right:6px">'+c.label+'</span>';
     }
     r.innerHTML='<span style="font-size:18px">&#127912;</span><span><b>Kleuren:</b> '+blocks+'</span>';body.appendChild(r);
   }
@@ -400,7 +464,6 @@ function kokShowResults(){
 function kokDoRoll(){
   if(kokRolling)return;
   kokRolling=true;kokPending=[];
-  document.getElementById('kok-results').style.display='none';
   document.getElementById('kok-hint').textContent='';
   kokSetBtn(false);
   kokState=[null,null,null,null,null,null,null];
@@ -473,6 +536,54 @@ function qwixxBuildGrid(){
   }
 }
 
+function qwixxToggle(){
+  var body=document.getElementById('qwixx-accordion-body');
+  var chev=document.getElementById('qwixx-chevron');
+  if(body.style.display==='none'){body.style.display='block';chev.className='qwixx-chevron open';}
+  else{body.style.display='none';chev.className='qwixx-chevron';}
+}
+
+var QWIXX_COLORS=[
+  {id:'b',label:'Blauw',bg:'#2a6bb0'},
+  {id:'y',label:'Geel', bg:'#e6c229'},
+  {id:'r',label:'Rood', bg:'#d63b3b'},
+  {id:'g',label:'Groen',bg:'#2d8a4e'}
+];
+
+function qwixxUpdateResults(){
+  var w1=qwixxState.w1, w2=qwixxState.w2;
+  if(!w1&&!w2){document.getElementById('qwixx-ww-total').textContent='—';document.getElementById('qwixx-grid').innerHTML='';return;}
+  // Wit+Wit totaal
+  var wwTotal=(w1||0)+(w2||0);
+  document.getElementById('qwixx-ww-total').textContent=wwTotal;
+  // Grid
+  var grid=document.getElementById('qwixx-grid');
+  grid.innerHTML='';
+  var rows=[{wid:'w1',wlabel:'Wit 1'},{wid:'w2',wlabel:'Wit 2'}];
+  for(var ri=0;ri<rows.length;ri++){
+    var row=rows[ri];
+    var wVal=qwixxState[row.wid];
+    var section=document.createElement('div');
+    var lbl=document.createElement('div');lbl.className='qwixx-row-label';lbl.textContent=row.wlabel+' combinaties';
+    var cells=document.createElement('div');cells.className='qwixx-cells';
+    for(var ci=0;ci<QWIXX_COLORS.length;ci++){
+      var c=QWIXX_COLORS[ci];
+      var cVal=qwixxState[c.id];
+      var total=wVal&&cVal ? wVal+cVal : '—';
+      var cell=document.createElement('div');cell.className='qwixx-cell';
+      var colorBox=document.createElement('div');colorBox.className='qwixx-cell-color';
+      colorBox.style.background=c.bg;
+      colorBox.textContent=total;
+      var cellLbl=document.createElement('div');cellLbl.className='qwixx-cell-label';cellLbl.textContent=c.label;
+      cell.appendChild(colorBox);cell.appendChild(cellLbl);
+      cells.appendChild(cell);
+    }
+    section.appendChild(lbl);section.appendChild(cells);
+    grid.appendChild(section);
+    if(ri<rows.length-1){var sep=document.createElement('div');sep.style.cssText='height:1px;background:var(--border);margin:4px 0';grid.appendChild(sep);}
+  }
+}
+
 function qwixxDoRoll(){
   if(qwixxRolling)return;
   qwixxRolling=true;
@@ -490,11 +601,14 @@ function qwixxDoRoll(){
         if(done===QWIXX_DICE.length){
           qwixxRolling=false;
           btn.className='roll-btn';btn.disabled=false;
+          qwixxUpdateResults();
         }
       },420);
     })(QWIXX_DICE[i]);
   }
 }
+
+
 
 var qBtn=document.getElementById('qwixx-rollBtn');
 qBtn.addEventListener('touchend',function(e){e.preventDefault();qwixxDoRoll();},false);
