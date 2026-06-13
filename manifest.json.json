@@ -1,0 +1,15 @@
+{
+  "name": "Dobbelstenen Combinatie App",
+  "short_name": "Dobbelstenen",
+  "start_url": "dobbelstenen.html",
+  "display": "standalone",
+  "background_color": "#F7F4EF",
+  "theme_color": "#3D2E8C",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

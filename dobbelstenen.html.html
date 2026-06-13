@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dobbelstenen">
+<title>Dobbelstenen</title>
+
+<link rel="manifest" href="manifest.json">
+
+<link class="apple-touch-icon" href="icon.png">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(function() { console.log('Service Worker Geregistreerd!'); })
+      .catch(function(err) { console.log('Service Worker Fout:', err); });
+  }
+</script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #F7F4EF; --surface: #FFFFFF; --accent: #3D2E8C;
+  --accent-light: #EAE8F8; --text: #1A1714; --text-muted: #7A7268;
+  --border: rgba(0,0,0,0.08); --wildcard: #C97B00; --wildcard-bg: #FFF8E6;
+  --radius: 18px; --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; overflow-x: hidden;
+  padding-bottom: 80px;
+}
+
+/* TABS */
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: -webkit-flex; display: flex;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 50;
+}
+.tab-btn {
+  flex: 1; padding: 10px 4px 8px;
+  background: none; border: none; cursor: pointer;
+  display: -webkit-flex; display: flex;
+  -webkit-flex-direction: column; flex-direction: column;
+  -webkit-align-items: center; align-items: center;
+  gap: 3px; -webkit-appearance: none;
+}
+.tab-icon { font-size: 22px; line-height: 1; }
+.tab-label { font-size: 10px; font-weight: 500; color: var(--text-muted); }
+.tab-btn.active .tab-label { color: var(--accent); font-weight: 700; }
+.tab-btn.active .tab-icon { -webkit-transform: scale(1.1); transform: scale(1.1); }
+
+/* SCREENS */
+.screen { display: none; }
+.screen.active { display: block; }
+
+.header {
+  padding: 52px 20px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--accent); }
+.header p { font-size: 14px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+.main { padding: 20px 16px; }
+.section-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 10px; margin-left: 2px;
+}
+.dice-section { margin-bottom: 20px; }
+.dice-row { display: -webkit-flex; display: flex; gap: 10px; -webkit-justify-content: center; justify-content: center; flex-wrap: wrap; }
+.die-wrap { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; gap: 5px; }
+.die {
+  width: 76px; height: 76px; border-radius: var(--radius);
+  background: var(--surface); border: 1.5px solid var(--border);
+  display: -webkit-flex; display: flex;
+  -webkit-align-items: center; align-items: center;
+  -webkit-justify-content: center; justify-content: center;
+  position: relative; overflow: visible;
+  box-shadow: var(--shadow);
+}
+.die.wc-num { border: 2.5px solid var(--wildcard); background: var(--wildcard-bg); }
+.die.wc-col { border: 2.5px solid var(--wildcard); }
+.die.color-die { border: 4px solid rgba(0,0,0,0.25); }
+
+/* Qwixx gekleurde dobbelstenen */
+.die.blue  { background: #2a6bb0; border-color: #2a6bb0; }
+.die.yellow{ background: #e6c229; border-color: #e6c229; }
+.die.red   { background: #d63b3b; border-color: #d63b3b; }
+.die.green { background: #2d8a4e; border-color: #2d8a4e; }
+.die.white { background: #fff; border-color: #ccc; }
+.die.blue span, .die.yellow span, .die.red span, .die.green span { color: #fff; }
+.die.yellow span { color: #5a4800; }
+.die.white span { color: #1A1714; }
+
+@-webkit-keyframes shake {
+  0%,100% { -webkit-transform: rotate(0deg) scale(1); }
+  20% { -webkit-transform: rotate(-14deg) scale(1.06); }
+  40% { -webkit-transform: rotate(16deg) scale(1.06); }
+  60% { -webkit-transform: rotate(-9deg) scale(1.03); }
+  80% { -webkit-transform: rotate(7deg) scale(1.03); }
+}
+@keyframes shake {
+  0%,100% { transform: rotate(0deg) scale(1); }
+  20% { transform: rotate(-14deg) scale(1.06); }
+  40% { transform: rotate(16deg) scale(1.06); }
+  60% { transform: rotate(-9deg) scale(1.03); }
+  80% { transform: rotate(7deg) scale(1.03); }
+}
+.die.rolling { -webkit-animation: shake 0.4s ease; animation: shake 0.4s ease; }
+
+.roll-btn {
+  width: 100%; padding: 18px;
+  background: var(--accent); color: #fff;
+  font-size: 17px; font-weight: 600;
+  border: none; border-radius: var(--radius);
+  cursor: pointer; letter-spacing: 0.01em;
+  box-shadow: 0 4px 16px rgba(61,46,140,0.3);
+  margin-bottom: 16px; display: block;
+  -webkit-appearance: none; appearance: none;
+}
+.roll-btn:active { opacity: 0.85; }
+.roll-btn.disabled { opacity: 0.35; box-shadow: none; }
+.hint { text-align: center; font-size: 13px; color: var(--wildcard); font-weight: 500; min-height: 20px; margin-bottom: 8px; }
+.results { background: var(--surface); border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); display: none; }
+.results-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 10px; }
+.results-row { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 8px; font-size: 15px; color: var(--text); padding: 6px 0; border-bottom: 1px solid var(--border); }
+.results-row:last-child { border-bottom: none; }
+.results-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,0.12); }
+
+.popup-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45); z-index: 100;
+  -webkit-align-items: flex-end; align-items: flex-end;
+  -webkit-justify-content: center; justify-content: center;
+}
+.popup-overlay.open { display: -webkit-flex; display: flex; }
+.popup-sheet { background: var(--surface); border-radius: 24px 24px 0 0; padding: 20px 20px 48px; width: 100%; max-width: 480px; }
+.popup-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+.popup-title { font-size: 17px; font-weight: 600; text-align: center; margin-bottom: 16px; color: var(--text); }
+.popup-options { display: -webkit-flex; display: flex; gap: 10px; -webkit-justify-content: center; justify-content: center; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+.num-btn {
+  width: 56px; height: 56px; border-radius: 14px;
+  border: 1.5px solid var(--border); background: var(--bg);
+  font-size: 22px; font-weight: 600; color: var(--accent); cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.num-btn:active { background: var(--accent-light); }
+.color-btn {
+  width: 52px; height: 52px; border-radius: 14px;
+  border: 2px solid rgba(0,0,0,0.12); cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+}
+.color-btn:active { opacity: 0.8; }
+</style>
+</head>
+<body>
+
+<div class="screen active" id="screen-kok">
+  <div class="header">
+    <h1>Keer op Keer 2</h1>
+    <p>Gooi alle dobbelstenen. Tik op ? of zwart om een keuze te maken.</p>
+  </div>
+  <div class="main">
+    <div class="dice-section">
+      <div class="section-label">Cijfers</div>
+      <div class="dice-row" id="kok-numRow"></div>
+    </div>
+    <div class="dice-section">
+      <div class="section-label">Kleuren</div>
+      <div class="dice-row" id="kok-colorRow"></div>
+    </div>
+    <div class="dice-section">
+      <div class="section-label">Actie</div>
+      <div class="dice-row" id="kok-actionRow"></div>
+    </div>
+    <p class="hint" id="kok-hint"></p>
+    <button class="roll-btn" id="kok-rollBtn" type="button">&#127922; Gooi alle dobbelstenen</button>
+    <div class="results" id="kok-results">
+      <div class="results-title">Uitkomst</div>
+      <div id="kok-resultsBody"></div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-qwixx">
+  <div class="header">
+    <h1>Qwixx</h1>
+    <p>Gooi alle 6 dobbelstenen tegelijk.</p>
+  </div>
+  <div class="main">
+    <div class="dice-section">
+      <div class="section-label">Wit</div>
+      <div class="dice-row" id="qwixx-whiteRow"></div>
+    </div>
+    <div class="dice-section">
+      <div class="section-label">Gekleurd</div>
+      <div class="dice-row" id="qwixx-colorRow"></div>
+    </div>
+    <button class="roll-btn" id="qwixx-rollBtn" type="button">&#127922; Gooi alle dobbelstenen</button>
+  </div>
+</div>
+
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup-sheet">
+    <div class="popup-handle"></div>
+    <div class="popup-title" id="popupTitle">Kies een getal</div>
+    <div class="popup-options" id="popupOptions"></div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-kok" type="button" onclick="switchTab('kok')">
+    <span class="tab-icon">&#127922;</span>
+    <span class="tab-label">Keer op Keer 2</span>
+  </button>
+  <button class="tab-btn" id="tab-qwixx" type="button" onclick="switchTab('qwixx')">
+    <span class="tab-icon">&#127919;</span>
+    <span class="tab-label">Qwixx</span>
+  </button>
+</div>
+
+<script type="text/javascript">
+// ── TAB SWITCHING ──────────────────────────────────────────
+function switchTab(name) {
+  var screens = document.querySelectorAll('.screen');
+  for (var i = 0; i < screens.length; i++) screens[i].className = 'screen';
+  document.getElementById('screen-' + name).className = 'screen active';
+  var tabs = document.querySelectorAll('.tab-btn');
+  for (var i = 0; i < tabs.length; i++) tabs[i].className = 'tab-btn';
+  document.getElementById('tab-' + name).className = 'tab-btn active';
+}
+
+// ── HELPERS ────────────────────────────────────────────────
+function randFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function makeBlock(x,y,b,stroke,sw) {
+  return '<rect x="'+x+'" y="'+y+'" width="'+b+'" height="'+b+'" fill="none" stroke="'+stroke+'" stroke-width="'+sw+'"/>'
+    +'<line x1="'+(x+sw)+'" y1="'+(y+sw)+'" x2="'+(x+b-sw)+'" y2="'+(y+b-sw)+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>'
+    +'<line x1="'+(x+b-sw)+'" y1="'+(y+sw)+'" x2="'+(x+sw)+'" y2="'+(y+b-sw)+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+}
+function makeBlocks5() {
+  var b=16,gap=4,s='#1A1714',sw=2.5,W=3*b+2*gap,H=2*b+gap;
+  var r='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  for(var i=0;i<2;i++)r+=makeBlock((b+gap)/2+i*(b+gap),0,b,s,sw);
+  for(var i=0;i<3;i++)r+=makeBlock(i*(b+gap),b+gap,b,s,sw);
+  return r+'</svg>';
+}
+function makeArrow3() {
+  var b=15,gap=4,s='#1A1714',sw=2.5,W=3*b+2*gap,aH=12,H=b+gap+aH;
+  var r='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  for(var i=0;i<3;i++)r+=makeBlock(i*(b+gap),0,b,s,sw);
+  var ay=b+gap+aH/2,ax2=W-4;
+  r+='<line x1="4" y1="'+ay+'" x2="' + ax2 + '" y2="' + ay + '" stroke="'+s+'" stroke-width="'+sw+'" stroke-linecap="round"/>';
+  r+='<polyline points="'+(ax2-8)+','+(ay-6)+' '+ax2+','+ay+' '+(ax2-8)+','+(ay+6)+'" fill="none" stroke="'+s+'" stroke-width="'+sw+'" stroke-linejoin="round" stroke-linecap="round"/>';
+  return r+'</svg>';
+}
+
+function animateDie(el, delay, cb) {
+  setTimeout(function() {
+    el.className = el.className.replace(' rolling','') + ' rolling';
+    setTimeout(function() {
+      el.className = el.className.replace(' rolling','');
+      cb();
+    }, 420);
+  }, delay);
+}
+
+// ── KEER OP KEER 2 ────────────────────────────────────────
+var KOK_NUM_FACES = [1,2,3,4,5,'?'];
+var KOK_COLOR_FACES = [
+  {label:'Groen',  bg:'#2d8a4e', wildcard:false},
+  {label:'Blauw',  bg:'#2a6bb0', wildcard:false},
+  {label:'Geel',   bg:'#e6c229', wildcard:false},
+  {label:'Roze',   bg:'#e05c8a', wildcard:false},
+  {label:'Oranje', bg:'#e07b2a', wildcard:false},
+  {label:'Zwart',  bg:'#222',    wildcard:true}
+];
+var KOK_COLOR_CHOICES = [];
+for(var i=0;i<KOK_COLOR_FACES.length;i++){if(!KOK_COLOR_FACES[i].wildcard)KOK_COLOR_CHOICES.push(KOK_COLOR_FACES[i]);}
+var KOK_ACTION_FACES = [
+  {desc:'Hart',    html:'<svg width="42" height="42" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 27s-11-7.5-11-14a7 7 0 0 1 11-5.74A7 7 0 0 1 27 13c0 6.5-11 14-11 14z" fill="#e02020"/></svg>'},
+  {desc:'Bom',     html:'<svg width="42" height="42" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="15" cy="19" r="9" fill="#222"/><line x1="21" y1="13" x2="25" y2="9" stroke="#555" stroke-width="2.5" stroke-linecap="round"/><circle cx="26" cy="8" r="2.5" fill="#e6c229"/><circle cx="10" cy="15" r="2.5" fill="rgba(255,255,255,0.2)"/></svg>'},
+  {desc:'Sterren',html:'<svg width="52" height="26" viewBox="0 0 52 26" xmlns="http://www.w3.org/2000/svg"><polygon points="13,2 15.8,9.5 24,10.2 18,15.5 20,23 13,19 6,23 8,15.5 2,10.2 10.2,9.5" fill="#f0c000"/><polygon points="39,2 41.8,9.5 50,10.2 44,15.5 46,23 39,19 32,23 34,15.5 28,10.2 36.2,9.5" fill="#f0c000"/></svg>'},
+  {desc:'Drie in een rij', html:makeArrow3()},
+  {desc:'Kleurblok', html:makeBlocks5()},
+  {desc:'Hart',    html:'<svg width="42" height="42" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 27s-11-7.5-11-14a7 7 0 0 1 11-5.74A7 7 0 0 1 27 13c0 6.5-11 14-11 14z" fill="#e02020"/></svg>'}
+];
+var KOK_DICE = [
+  {type:'number',id:0},{type:'number',id:1},{type:'number',id:2},
+  {type:'color', id:3},{type:'color', id:4},{type:'color', id:5},
+  {type:'action',id:6}
+];
+var kokState = [null,null,null,null,null,null,null];
+var kokPending = [];
+var kokRolling = false;
+
+function kokInPending(i){for(var k=0;k<kokPending.length;k++){if(kokPending[k]===i)return true;}return false;}
+function kokRemovePending(i){var n=[];for(var k=0;k<kokPending.length;k++){if(kokPending[k]!==i)n.push(kokPending[k]);}kokPending=n;}
+
+function kokRenderDie(i) {
+  var d=KOK_DICE[i],s=kokState[i],el=document.getElementById('kok-die-'+i);
+  if(!el)return;
+  el.className='die';el.style.background='';el.style.borderColor='';
+  if(!s){el.innerHTML=emptyDieHTML();return;}
+  if(d.type==='number'){
+    if(s==='?'){el.className='die wc-num';el.innerHTML='<span style="font-size:34px;font-weight:700;color:#C97B00">?</span>';}
+    else{el.innerHTML='<span style="font-size:32px;font-weight:700;color:#1A1714">'+s+'</span>';}
+  } else if(d.type==='color'){
+    el.style.background=s.bg;el.style.borderColor=s.bg;
+    if(s.wildcard){el.className='die wc-col';el.style.background=s.bg;el.innerHTML='<span style="font-size:26px;font-weight:700;color:#C97B00">?</span>';}
+    else{el.className='die color-die';el.style.background=s.bg;el.style.borderColor='';el.innerHTML='';}
+  } else{el.innerHTML=s.html;}
+}
+
+function kokBuildGrid(){
+  document.getElementById('kok-numRow').innerHTML='';
+  document.getElementById('kok-colorRow').innerHTML='';
+  document.getElementById('kok-actionRow').innerHTML='';
+  for(var i=0;i<KOK_DICE.length;i++){
+    (function(idx){
+      var d=KOK_DICE[idx];
+      var wrap=document.createElement('div');wrap.className='die-wrap';
+      var die=document.createElement('div');die.className='die';die.id='kok-die-'+idx;
+      function onTap(e){e.preventDefault();if(kokInPending(idx))kokOpenPopup(idx);}
+      die.addEventListener('touchend',onTap,false);
+      die.addEventListener('click',function(){if(kokInPending(idx))kokOpenPopup(idx);},false);
+      kokRenderDie(idx);wrap.appendChild(die);
+      if(d.type==='number')document.getElementById('kok-numRow').appendChild(wrap);
+      else if(d.type==='color')document.getElementById('kok-colorRow').appendChild(wrap);
+      else document.getElementById('kok-actionRow').appendChild(wrap);
+    })(i);
+  }
+}
+
+function kokOpenPopup(i){
+  var d=KOK_DICE[i],overlay=document.getElementById('popupOverlay'),
+      title=document.getElementById('popupTitle'),opts=document.getElementById('popupOptions');
+  opts.innerHTML='';
+  if(d.type==='number'){
+    title.textContent='Kies een getal';
+    for(var n=1;n<=5;n++){
+      (function(val){
+        var btn=document.createElement('button');btn.className='num-btn';btn.type='button';btn.textContent=val;
+        btn.addEventListener('touchend',function(e){e.preventDefault();kokChoose(i,val);},false);
+        btn.addEventListener('click',function(){kokChoose(i,val);},false);
+        opts.appendChild(btn);
+      })(n);
+    }
+  } else {
+    title.textContent='Kies een kleur';
+    for(var c=0;c<KOK_COLOR_CHOICES.length;c++){
+      (function(col){
+        var btn=document.createElement('button');btn.className='color-btn';btn.type='button';
+        btn.style.background=col.bg;btn.title=col.label;
+        btn.addEventListener('touchend',function(e){e.preventDefault();kokChoose(i,col);},false);
+        btn.addEventListener('click',function(){kokChoose(i,col);},false);
+        opts.appendChild(btn);
+      })(KOK_COLOR_CHOICES[c]);
+    }
+  }
+  overlay.className='popup-overlay open';
+}
+
+function kokChoose(i,val){
+  kokState[i]=val;kokRemovePending(i);kokRenderDie(i);
+  document.getElementById('popupOverlay').className='popup-overlay';
+  document.getElementById('kok-hint').textContent=kokPending.length>0?'Tik op het gemarkeerde vlak om een keuze te maken':'';
+  kokShowResults();
+}
+
+function kokSetBtn(on){var b=document.getElementById('kok-rollBtn');b.className=on?'roll-btn':'roll-btn disabled';b.disabled=!on;}
+
+function kokShowResults(){
+  var body=document.getElementById('kok-resultsBody');body.innerHTML='';
+  document.getElementById('kok-results').style.display='block';
+  var numVals=[],colVals=[],action=kokState[6];
+  for(var k=0;k<3;k++){if(kokState[k]!==null)numVals.push(kokState[k]);}
+  for(var k=3;k<6;k++){if(kokState[k]!==null)colVals.push(kokState[k]);}
+  if(numVals.length){var r=document.createElement('div');r.className='results-row';r.innerHTML='<span style="font-size:18px">&#128290;</span><span><b>Cijfers:</b> '+numVals.join(', ')+'</span>';body.appendChild(r);}
+  if(colVals.length){
+    var r=document.createElement('div');r.className='results-row';
+    var blocks='';
+    for(var k=0;k<colVals.length;k++){
+      var c=colVals[k];
+      var textCol=(c.bg==='#e6c229')?'#5a4800':'#fff';
+      blocks+='<span style="display:inline-block;background:'+c.bg+';color:'+textCol+';border-radius:8px;padding:3px 10px;font-size:13px;font-weight:600;margin-right:6px">'+c.label+'</span>';
+    }
+    r.innerHTML='<span style="font-size:18px">&#127912;</span><span><b>Kleuren:</b> '+blocks+'</span>';body.appendChild(r);
+  }
+  if(action){var r=document.createElement('div');r.className='results-row';r.innerHTML='<span style="font-size:18px">&#11088;</span><span><b>Actie:</b> '+action.desc+'</span>';body.appendChild(r);}
+}
+
+function kokDoRoll(){
+  if(kokRolling)return;
+  kokRolling=true;kokPending=[];
+  document.getElementById('kok-results').style.display='none';
+  document.getElementById('kok-hint').textContent='';
+  kokSetBtn(false);
+  kokState=[null,null,null,null,null,null,null];
+  for(var k=0;k<KOK_DICE.length;k++)kokRenderDie(k);
+  var done=0;
+  for(var i=0;i<KOK_DICE.length;i++){
+    (function(idx){
+      var el=document.getElementById('kok-die-'+idx);
+      el.className='die rolling';
+      setTimeout(function(){
+        el.className='die';
+        var face;
+        var type=KOK_DICE[idx].type;
+        if(type==='number')face=randFrom(KOK_NUM_FACES);
+        else if(type==='color')face=randFrom(KOK_COLOR_FACES);
+        else face=randFrom(KOK_ACTION_FACES);
+        kokState[idx]=face;
+        if(type==='number'&&face==='?')kokPending.push(idx);
+        if(type==='color'&&face.wildcard)kokPending.push(idx);
+        kokRenderDie(idx);done++;
+        if(done===KOK_DICE.length){
+          kokRolling=false;
+          kokSetBtn(true);
+          if(kokPending.length>0){document.getElementById('kok-hint').textContent='Tik op het gemarkeerde vlak om een keuze te maken';}
+          kokShowResults();
+        }
+      },420);
+    })(i);
+  }
+}
+var kokBtn=document.getElementById('kok-rollBtn');
+kokBtn.addEventListener('touchend',function(e){e.preventDefault();kokDoRoll();},false);
+kokBtn.addEventListener('click',kokDoRoll,false);
+kokBuildGrid();
+
+// ── QWIXX ────────────────────────────────────────────────
+var QWIXX_DICE = [
+  {id:'w1', color:'white', label:'Wit 1'},
+  {id:'w2', color:'white', label:'Wit 2'},
+  {id:'b',  color:'blue',  label:'Blauw'},
+  {id:'y',  color:'yellow',label:'Geel'},
+  {id:'r',  color:'red',   label:'Rood'},
+  {id:'g',  color:'green', label:'Groen'}
+];
+var qwixxState = {w1:null,w2:null,b:null,y:null,r:null,g:null};
+var qwixxRolling = false;
+
+function qwixxRenderDie(d) {
+  var el=document.getElementById('qwixx-die-'+d.id);
+  if(!el)return;
+  var val=qwixxState[d.id];
+  el.className='die '+d.color;
+  if(!val){el.innerHTML=emptyDieHTML();return;}
+  el.innerHTML='<span style="font-size:32px;font-weight:700">'+val+'</span>';
+}
+
+function qwixxBuildGrid(){
+  document.getElementById('qwixx-whiteRow').innerHTML='';
+  document.getElementById('qwixx-colorRow').innerHTML='';
+  for(var i=0;i<QWIXX_DICE.length;i++){
+    (function(d){
+      var wrap=document.createElement('div');wrap.className='die-wrap';
+      var lbl=document.createElement('span');lbl.className='section-label';lbl.style.fontSize='10px';lbl.textContent=d.label;
+      var die=document.createElement('div');die.className='die '+d.color;die.id='qwixx-die-'+d.id;
+      die.innerHTML=emptyDieHTML();
+      wrap.appendChild(lbl);wrap.appendChild(die);
+      if(d.color==='white')document.getElementById('qwixx-whiteRow').appendChild(wrap);
+      else document.getElementById('qwixx-colorRow').appendChild(wrap);
+    })(QWIXX_DICE[i]);
+  }
+}
+
+function qwixxDoRoll(){
+  if(qwixxRolling)return;
+  qwixxRolling=true;
+
+  var btn=document.getElementById('qwixx-rollBtn');btn.className='roll-btn disabled';btn.disabled=true;
+  var done=0;
+  for(var i=0;i<QWIXX_DICE.length;i++){
+    (function(d){
+      var el=document.getElementById('qwixx-die-'+d.id);
+      el.className='die '+d.color+' rolling';
+      setTimeout(function(){
+        el.className='die '+d.color;
+        qwixxState[d.id]=Math.floor(Math.random()*6)+1;
+        qwixxRenderDie(d);done++;
+        if(done===QWIXX_DICE.length){
+          qwixxRolling=false;
+          btn.className='roll-btn';btn.disabled=false;
+        }
+      },420);
+    })(QWIXX_DICE[i]);
+  }
+}
+
+var qBtn=document.getElementById('qwixx-rollBtn');
+qBtn.addEventListener('touchend',function(e){e.preventDefault();qwixxDoRoll();},false);
+qBtn.addEventListener('click',qwixxDoRoll,false);
+qwixxBuildGrid();
+
+// ── GEDEELD ───────────────────────────────────────────────
+function emptyDieHTML(){
+  return '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C8C4BC" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1"/><circle cx="15.5" cy="15.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/><circle cx="8.5" cy="15.5" r="1"/></svg>';
+}
+
+document.getElementById('popupOverlay').addEventListener('touchend',function(e){if(e.target===this){e.preventDefault();this.className='popup-overlay';}},false);
+document.getElementById('popupOverlay').addEventListener('click',function(e){if(e.target===this)this.className='popup-overlay';},false);
+</script>
+</body>
+</html>
