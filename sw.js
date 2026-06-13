@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dobbelstenen-app-cache-v1';
+const CACHE_NAME = 'dobbelstenen-app-cache-v2';
 const ASSETS = [
   'dobbelstenen.html',
   'manifest.json',
